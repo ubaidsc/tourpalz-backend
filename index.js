@@ -180,8 +180,8 @@ app.get('/tourguides', async (req, res) => {
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
-}); 
-            
+});
+
 // create an api where username is of tourguide and profileType is of traveler
 app.get('/travelers/:username', async (req, res) => {
     try {
