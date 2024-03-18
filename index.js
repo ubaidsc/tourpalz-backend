@@ -4,7 +4,6 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const http = require('http');
 const socketIO = require('socket.io');
-const multer = require('multer');
 
 
 const app = express();
@@ -15,10 +14,6 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cors());
 app.use(express.json());
-
-
-// Set up multer for handling file uploads
-const upload = multer({ dest: 'uploads/' });
 
 const cloudinary = require('cloudinary').v2;
 
@@ -99,37 +94,38 @@ app.use('/', (req, res) => {
 );
 
 // Define a route for user registration
-app.post('/register', upload.single('profilePicture'), async (req, res) => {
+app.post('/register', async (req, res) => {
     try {
-        let profilePictureUrl = null; // Initialize profile picture URL
         // Check if a file is uploaded
-        if (req.file) {
+        if (req.body.profilePicture) {
             // Upload image to Cloudinary
-            const result = await cloudinary.uploader.upload(req.file.path);
-            profilePictureUrl = result.secure_url; // Get the secure URL of the uploaded image
+            const result = await cloudinary.uploader.upload(req.body.profilePicture);
+            const profilePictureUrl = result.secure_url; // Get the secure URL of the uploaded image
+
+            // Create a new user object with data from the request body
+            const newUser = new User({
+                username: req.body.username,
+                email: req.body.email,
+                password: req.body.password,
+                location: req.body.location,
+                profileType: req.body.profileType,
+                profilePicture: profilePictureUrl // Assign the profile picture URL
+            });
+
+            // Save the user to the database
+            await newUser.save();
+
+            // Respond with a success message
+            res.status(201).json({ message: 'User registered successfully' });
+        } else {
+            // Respond with an error message if no file is uploaded
+            res.status(400).json({ error: 'No profile picture uploaded' });
         }
-
-        // Create a new user object with data from the request body
-        const newUser = new User({
-            username: req.body.username,
-            email: req.body.email,
-            password: req.body.password,
-            location: req.body.location,
-            profileType: req.body.profileType,
-            profilePicture: profilePictureUrl // Assign the profile picture URL
-        });
-
-        // Save the user to the database
-        await newUser.save();
-
-        // Respond with a success message
-        res.status(201).json({ message: 'User registered successfully' });
     } catch (error) {
         // If an error occurs, respond with an error message
         res.status(500).json({ error: error.message });
     }
 });
-
 // get all users
 app.get('/users', async (req, res) => {
     try {
