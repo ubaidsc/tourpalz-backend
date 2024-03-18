@@ -8,6 +8,19 @@ const socketIO = require('socket.io');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+const cors = require('cors');
+
+const allowedOrigins = ['*']; // Allow requests from any origin
+
+app.use(cors({
+    origin: function (origin, callback) {
+        if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    }
+}));
 
 // Body parser middleware
 app.use(bodyParser.json());
@@ -88,7 +101,7 @@ const User = mongoose.model('User', userSchema);
 
 // ///////////////////////// // //////////////////
 // Routes
-app.use('/', (req, res) => {
+app.get('/', (req, res) => {
     res.send('Welcome to the Tour Palz APP!');
 }
 );
