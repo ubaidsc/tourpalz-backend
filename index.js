@@ -10,9 +10,10 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 const allowedOrigins = {
-    origin: 'http://localhost:3000',
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
-    credentials: true,
+    origin: '*',
+    methods: '*',
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true
 };
 
 app.use(cors(allowedOrigins));
