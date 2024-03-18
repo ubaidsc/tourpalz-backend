@@ -59,11 +59,11 @@ io.on('connection', (socket) => {
 
 
 // MongoDB connection
-mongoose.connect('mongodb://localhost:27017/chatApp');
+mongoose.connect('mongodb://pakman4990:pakman4990@ac-10shuiq-shard-00-00.6tnmxxb.mongodb.net:27017,ac-10shuiq-shard-00-01.6tnmxxb.mongodb.net:27017,ac-10shuiq-shard-00-02.6tnmxxb.mongodb.net:27017/?ssl=true&replicaSet=atlas-x0bs5v-shard-0&authSource=admin&retryWrites=true&w=majority&appName=Cluster0/chatApp');
 const db = mongoose.connection;
 
 db.once('open', () => {
-    console.log('Connected to MongoDB');
+    console.log('Connected to MongoDB database');
 });
 
 // Mongoose Schema for Chat Message
@@ -93,7 +93,7 @@ const User = mongoose.model('User', userSchema);
 
 // ///////////////////////// // //////////////////
 // Routes
-app.get('/', (req, res) => {
+app.use('/', (req, res) => {
     res.send('Welcome to the Tour Palz APP!');
 }
 );
