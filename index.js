@@ -8,20 +8,14 @@ const socketIO = require('socket.io');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
-const cors = require('cors');
 
-const allowedOrigins = ['*']; // Allow requests from any origin
+const allowedOrigins = {
+    origin: 'http://localhost:3000',
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    credentials: true,
+};
 
-app.use(cors({
-    origin: function (origin, callback) {
-        if (!origin || allowedOrigins.indexOf(origin) !== -1) {
-            callback(null, true);
-        } else {
-            callback(new Error('Not allowed by CORS'));
-        }
-    }
-}));
-
+app.use(cors(allowedOrigins));
 // Body parser middleware
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
