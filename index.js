@@ -4,19 +4,14 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const http = require('http');
 const socketIO = require('socket.io');
+const multer = require('multer');
+const path = require('path');
 
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-const allowedOrigins = {
-    origin: '*',
-    methods: '*',
-    allowedHeaders: ['Content-Type', 'Authorization'],
-    credentials: true
-};
 
-app.use(cors(allowedOrigins));
 // Body parser middleware
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -31,6 +26,17 @@ cloudinary.config({
     api_secret: 'jpcm0Ci7nSbKL_gDttIzSJSNORo'
 });
 
+// Multer configuration
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, 'uploads/');
+    },
+    filename: (req, file, cb) => {
+        cb(null, Date.now() + file.originalname);
+    },
+});
+
+const upload = multer({ storage });
 
 // Create an HTTP server for the Express app
 const server = http.createServer(app);
@@ -38,8 +44,12 @@ const server = http.createServer(app);
 // Create a new instance of SocketIO and attach it to the HTTP server
 const io = socketIO(server, {
     cors: {
-        origin: '*',
-        methods: ['GET', 'POST'],
+
+        origin:
+            ['http://localhost:3000',
+                'https://tourpalz.vercel.app',
+                'https://tourpalz-backend.vercel.app'],
+        methods: '*',
     }
 });
 
@@ -62,7 +72,7 @@ io.on('connection', (socket) => {
 
 
 // MongoDB connection
-mongoose.connect('mongodb://pakman4990:pakman4990@ac-10shuiq-shard-00-00.6tnmxxb.mongodb.net:27017,ac-10shuiq-shard-00-01.6tnmxxb.mongodb.net:27017,ac-10shuiq-shard-00-02.6tnmxxb.mongodb.net:27017/?ssl=true&replicaSet=atlas-x0bs5v-shard-0&authSource=admin&retryWrites=true&w=majority&appName=Cluster0');
+mongoose.connect('mongodb://127.0.0.1:27017/chatApp');
 const db = mongoose.connection;
 
 db.once('open', () => {
@@ -87,7 +97,7 @@ const userSchema = new mongoose.Schema({
     password: String,
     location: String,
     profileType: String,
-    profilePicture: String, // Store path to profile picture
+    profilePicture: String, // Store path toprofile picture
 });
 
 // Create a Mongoose model
@@ -102,12 +112,12 @@ app.get('/', (req, res) => {
 );
 
 // Define a route for user registration
-app.post('/register', async (req, res) => {
+app.post('/register', upload.single('profilePicture'), async (req, res) => {
     try {
-        // Check if a file is uploaded
-        if (req.body.profilePicture) {
+
+        if (req.file) {
             // Upload image to Cloudinary
-            const result = await cloudinary.uploader.upload(req.body.profilePicture);
+            const result = await cloudinary.uploader.upload(req.file.path);
             const profilePictureUrl = result.secure_url; // Get the secure URL of the uploaded image
 
             // Create a new user object with data from the request body
@@ -125,9 +135,22 @@ app.post('/register', async (req, res) => {
 
             // Respond with a success message
             res.status(201).json({ message: 'User registered successfully' });
-        } else {
-            // Respond with an error message if no file is uploaded
-            res.status(400).json({ error: 'No profile picture uploaded' });
+        }
+        else {
+            // Create a new user object with data from the request body
+            const newUser = new User({
+                username: req.body.username,
+                email: req.body.email,
+                password: req.body.password,
+                location: req.body.location,
+                profileType: req.body.profileType,
+            });
+
+            // Save the user to the database
+            await newUser.save();
+
+            // Respond with a success message
+            res.status(201).json({ message: 'User registered successfully' });
         }
     } catch (error) {
         // If an error occurs, respond with an error message
@@ -259,3 +282,5 @@ server.listen(PORT, () => {
     console.log(`Server started on port ${PORT}`);
 }
 );
+
+
