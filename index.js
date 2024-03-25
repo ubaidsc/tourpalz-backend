@@ -277,6 +277,22 @@ app.get('/api/chats/:sender/:receiver', async (req, res) => {
     }
 });
 
+// api endpoint to get the search results
+app.get('/search', (req, res) => {
+    const { location, rating, language, price } = req.query;
+
+    const filtered = tourGuidesData.filter((guide) => {
+        const locationMatch = !location || guide.location.toLowerCase() === location.toLowerCase();
+        const ratingMatch = !rating || guide.rating >= parseInt(rating);
+        const languageMatch = !language || guide.language.toLowerCase() === language.toLowerCase();
+        const priceMatch = !price || guide.price <= parseInt(price);
+
+        return locationMatch && ratingMatch && languageMatch && priceMatch;
+    });
+
+    res.json(filtered);
+});
+
 // Start the server
 server.listen(PORT, () => {
     console.log(`Server started on port ${PORT}`);
