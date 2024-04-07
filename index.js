@@ -7,7 +7,6 @@ const socketIO = require('socket.io');
 const multer = require('multer');
 const path = require('path');
 
-
 const app = express();
 const PORT = process.env.PORT || 3001;
 
@@ -64,6 +63,15 @@ io.on('connection', (socket) => {
         io.emit('new message', data);
     });
 
+    // Handle location updates
+    socket.on('locationUpdate', (data) => {
+        const { role, latitude, longitude, address } = data;
+        // Broadcast the location update to the appropriate clients
+        // based on the user's role (guide or traveler)
+        io.emit(`location/${role}`, { latitude, longitude, address });
+        console.log(`Location update from ${role}: ${latitude}, ${longitude}, ${address}`);
+    });
+
     // Listen for disconnections
     socket.on('disconnect', () => {
         console.log('A user disconnected');
@@ -88,7 +96,17 @@ const chatSchema = new mongoose.Schema({
 });
 
 const Chat = mongoose.model('Chat', chatSchema);
-// //////////////////////////////////////////////// //
+// //////////////////////////////////////////////////
+
+// Mongoose Schema for Customer Support
+const supportSchema = new mongoose.Schema({
+    sender: { type: String, required: true },
+    question: { type: String, required: true },
+    timestamp: { type: Date, default: Date.now },
+});
+
+const Support = mongoose.model('Support', supportSchema);
+
 
 // Define a Mongoose schema for user data
 const userSchema = new mongoose.Schema({
@@ -260,6 +278,35 @@ app.post('/api/chats', async (req, res) => {
         res.status(500).json({ success: false, error: 'Server Error' });
     }
 });
+
+app.post('/api/support', async (req, res) => {
+    try {
+        const { sender, message } = req.body;
+        const support = new Support({ sender, question: message });
+        await support.save();
+        // Emit the new message event for only one time
+        io.emit('new message', { sender, message });
+        res.status(201).json({ success: true, message: 'Support message saved successfully' });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ success: false, error: 'Server Error' });
+    }
+
+});
+
+// api endpoint to get the chats between given user and the support
+app.get('/api/support/:sender', async (req, res) => {
+    try {
+        const { sender } = req.params;
+        const support = await Support.find({ sender: sender });
+        res.status(200).json({ success: true, support });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ success: false, error: 'Server Error' });
+    }
+});
+
 
 app.get('/api/chats/:sender/:receiver', async (req, res) => {
     try {
