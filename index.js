@@ -121,6 +121,44 @@ const userSchema = new mongoose.Schema({
 // Create a Mongoose model
 const User = mongoose.model('User', userSchema);
 
+// Define a Mongoose schema for Tour Guide
+const tourGuideSchema = new mongoose.Schema({
+    username: String,
+    email: String,
+    password: String,
+    location: String,
+    language: String,
+    price: Number,
+    profileType: String,
+    profilePicture: String,
+});
+
+// Create a Mongoose model for Tour Guide
+const TourGuide = mongoose.model('TourGuide', tourGuideSchema);
+
+
+// create a model for tour which these fields: destination, date,special request,no of people, guide
+const tourSchema = new mongoose.Schema({
+    destination: String,
+    date: Date,
+    noOfPeople: Number,
+    specialRequest: String,
+    travelerEmail: String,
+    guide: String,
+});
+
+const Tour = mongoose.model('Tour', tourSchema);
+
+
+// model for review. It has these fields: guide name, rating and review
+const reviewSchema = new mongoose.Schema({
+    guide: String,
+    rating: Number,
+    review: String,
+});
+
+const Review = mongoose.model('Review', reviewSchema);
+
 
 // ///////////////////////// // //////////////////
 // Routes
@@ -175,6 +213,43 @@ app.post('/register', upload.single('profilePicture'), async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 });
+
+app.post('/register/guide', upload.single('profilePicture'), async (req, res) => {
+    try {
+
+        if (req.file) {
+            // Upload image to Cloudinary
+            const result = await cloudinary.uploader.upload(req.file.path);
+            const profilePictureUrl = result.secure_url; // Get the secure URL of the uploaded image
+
+            // Create a new user object with data from the request body for tour guide
+            const newUser = new TourGuide({
+                username: req.body.username,
+                email: req.body.email,
+                password: req.body.password,
+                location: req.body.location,
+                language: req.body.language,
+                price: req.body.price,
+                profileType: req.body.profileType,
+                profilePicture: profilePictureUrl // Assign the profile picture URL
+            });
+
+            // Save the user to the database
+            await newUser.save();
+
+            // Respond with a success message
+            res.status(201).json({ message: 'User registered successfully' });
+        }
+        else {
+            console.log("no file");
+        }
+    } catch (error) {
+        // If an error occurs, respond with an error message
+        res.status(500).json({ error: error.message });
+    }
+});
+
+
 // get all users
 app.get('/users', async (req, res) => {
     try {
@@ -203,6 +278,88 @@ app.post('/login', async (req, res) => {
 }
 );
 
+// Login route for tour guides
+app.post('/login/tour', async (req, res) => {
+    try {
+        const { email, password, profileType } = req.body;
+        console.log(email + " " + password + " " + profileType);
+        const user = await TourGuide({ email, password, profileType })
+        if (user) {
+            res.status(200).json({ message: 'Login successful', user });
+        } else {
+            res.status(401).json({ error: 'Invalid credentials' });
+        }
+    } catch (error) {
+        // If an error occurs, respond with an error message
+        res.status(500).json({ error: error.message });
+    }
+}
+);
+
+// ////////////////// For Reviews //////////////////////
+// create a review
+app.post('/review', async (req, res) => {
+    try {
+        const { guide, rating, review } = req.body;
+        const newReview = new Review({ guide, rating, review });
+        await newReview.save();
+        res.status(201).json({ message: 'Review created successfully' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// get all reviews by guide name
+app.get('/reviews/:guide', async (req, res) => {
+    try {
+        const reviews = await Review.find({ guide: req.params.guide });
+        res.status(200).json({ reviews });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+}
+);
+
+
+////////////////////// For Tours //////////////////////
+// create a tour
+app.post('/tour', async (req, res) => {
+    try {
+        const { destination, date, specialRequest, noOfPeople, travelerEmail, guide } = req.body;
+        const tour = new Tour({ destination, date, specialRequest, noOfPeople, travelerEmail, guide });
+        await tour.save();
+        res.status(201).json({ message: 'Tour created successfully' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// get all tours
+app.get('/tours/:email', async (req, res) => {
+    try {
+        const tours = await Tour.find({ travelerEmail: req.params.email });
+        res.status(200).json({ tours });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// cancel a tour
+app.delete('/tour/:id', async (req, res) => {
+    try {
+        const tour = await Tour.findByIdAndDelete(req.params.id);
+        if (tour) {
+            res.status(200).json({ message: 'Tour canceled successfully' });
+        } else {
+            res.status(404).json({ error: 'Tour not found' });
+        }
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+
+
 // use email to get user
 app.get('/users/:email', async (req, res) => {
     try {
@@ -217,10 +374,74 @@ app.get('/users/:email', async (req, res) => {
     }
 });
 
+// api to update user profile
+app.put('/users/:email', async (req, res) => {
+    try {
+        console.log(req.body);
+        console.log(req.params.email);
+        const user = await User.findOne({ email: req.params.email });
+        if (user) {
+            user.username = req.body.username;
+            user.email = req.body.email;
+            user.password = req.body.password;
+            user.location = req.body.location;
+            user.profileType = req.body.profileType;
+            await user.save();
+            res.status(200).json({ user });
+        } else {
+            res.status(404).json({ error: 'User not found' });
+        }
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+}
+);
+
+// api to update guide profile
+app.put('/guides/:email', async (req, res) => {
+    try {
+        console.log(req.body);
+        console.log(req.params.email);
+        const guide = await TourGuide.findOne({ email: req.params.email });
+        if (guide) {
+            guide.username = req.body.username;
+            guide.email = req.body.email;
+            guide.password = req.body.password;
+            guide.location = req.body.location;
+            guide.language = req.body.language;
+            guide.price = req.body.price;
+            guide.profileType = req.body.profileType;
+            await guide.save();
+            res.status(200).json({ guide });
+        } else {
+            res.status(404).json({ error: 'Guide not found' });
+        }
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+}
+);
+
+
+// use email to get tour guide
+app.get('/guides/:email', async (req, res) => {
+    try {
+        const user = await TourGuide.findOne({ email: req.params.email });
+        if (user) {
+            res.status(200).json({ user });
+        } else {
+            res.status(404).json({ error: 'User not found' });
+        }
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+
 // get all tour guides
 app.get('/tourguides', async (req, res) => {
     try {
-        const tourguides = await User.find({ profileType: 'tourGuide' });
+        const tourguides = await TourGuide.find();
         res.status(200).json({ tourguides });
     } catch (error) {
         res.status(500).json({ error: error.message });
