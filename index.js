@@ -80,7 +80,7 @@ io.on('connection', (socket) => {
 
 
 // MongoDB connection
-mongoose.connect('mongodb://127.0.0.1:27017/chatApp');
+mongoose.connect('mongodb+srv://ranaubaid409:nREzOaTGfMnpSond@mycluster.svivlrw.mongodb.net/chatApp');
 const db = mongoose.connection;
 
 db.once('open', () => {
