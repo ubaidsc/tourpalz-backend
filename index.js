@@ -46,8 +46,8 @@ const io = socketIO(server, {
 
         origin:
             ['http://localhost:3000',
-                'https://tourpalz.vercel.app',
-                'https://tourpalz-backend.vercel.app'],
+                'https://tourpalzfrontend.vercel.app',
+                'https://tourpalzbackend.vercel.app'],
         methods: '*',
     }
 });
